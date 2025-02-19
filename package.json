@@ -1,0 +1,30 @@
+{
+  "name": "spotter-sdk",
+  "version": "0.0.1",
+  "description": "spotlight for enterprise applications",
+  "main": "dist/node/index.cjs.js",
+  "module": "dist/node/index.esm.js",
+  "browser": "dist/browser/index.iife.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "formdata-polyfill": "^4.0.10",
+    "tsup": "^8.3.6",
+    "typescript": "^5.7.3"
+  },
+  "dependencies": {
+    "@babycommando/entity-db": "^1.0.9",
+    "openai": "^4.82.0",
+    "turndown": "^7.2.0",
+    "zod": "^3.24.1"
+  },
+  "type": "module",
+  "sourcemap": true
+}
