@@ -245,8 +245,23 @@ There is no network effect from shared/pre-built site maps. Each operator's conf
 
 ---
 
-## Open Questions
+## Resolved Decisions
 
-- **Widget conflict detection:** Should the intent router detect and suppress Spotter's widget if the site already has an identical-looking chatbot in the same viewport position?
-- **Config encryption:** Should `spotter.config.json` support encrypting sensitive selector/endpoint data before committing to git, for operators with strict security requirements?
-- **Offline/cached MCP manifests:** Should MCP manifests be fetched and cached at crawl time into the config, or always fetched live at runtime?
+- **MCP manifests are cached at crawl time** into `spotter.config.json`. They are not fetched live at runtime. Operators can also explicitly allow-list which MCP tools Spotter is permitted to call — tools not in the allow-list are ignored even if present in the manifest:
+
+```json
+{
+  "mcpServers": [
+    {
+      "url": "https://api.company.com/mcp",
+      "allowedTools": ["getPointsBalance", "getBookingHistory"]
+    }
+  ]
+}
+```
+
+If `allowedTools` is omitted, all discovered tools are available. Crawl fetches the manifest and writes it into the config; subsequent crawls refresh it.
+
+- **Config encryption:** Not supported in v1. Deferred.
+
+- **Widget conflict detection:** No active suppression. The `onUnhandled` callback is the integration contract — operators wire Spotter to their existing chatbot via that callback. Attempting to detect and suppress other widgets by viewport position is too brittle to be reliable.
