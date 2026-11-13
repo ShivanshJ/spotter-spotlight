@@ -2,9 +2,19 @@
   "name": "spotter-sdk",
   "version": "0.0.1",
   "description": "spotlight for enterprise applications",
-  "main": "dist/node/index.cjs.js",
-  "module": "dist/node/index.esm.js",
-  "browser": "dist/browser/index.iife.js",
+  "main": "dist/node/proxy.cjs",
+  "module": "dist/node/proxy.esm.js",
+  "browser": "dist/index.iife.js",
+  "exports": {
+    ".": {
+      "browser": "./dist/index.esm.js",
+      "import": "./dist/index.esm.js"
+    },
+    "./proxy": {
+      "import": "./dist/node/proxy.esm.js",
+      "require": "./dist/node/proxy.cjs"
+    }
+  },
   "files": [
     "dist"
   ],
