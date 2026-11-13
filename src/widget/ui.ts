@@ -56,10 +56,10 @@ export function createUI(): UIController {
     submitHandler?.(query)
   })
 
-  function appendMessage(html: string): void {
+  function appendBubble(node: Node): void {
     const bubble = document.createElement('div')
     bubble.setAttribute('data-spotter-bubble', '')
-    bubble.innerHTML = html
+    bubble.appendChild(node)
     messages.appendChild(bubble)
     messages.scrollTop = messages.scrollHeight
   }
@@ -67,12 +67,19 @@ export function createUI(): UIController {
   return {
     container,
     onSubmit(handler) { submitHandler = handler },
-    showMessage(text) { appendMessage(text) },
+    showMessage(text) {
+      const span = document.createElement('span')
+      span.textContent = text
+      appendBubble(span)
+    },
     showSteps(steps) {
-      const list = steps
-        .map((s, i) => `${i + 1}. ${s.description}`)
-        .join('<br>')
-      appendMessage(list)
+      const ol = document.createElement('ol')
+      steps.forEach((s) => {
+        const li = document.createElement('li')
+        li.textContent = s.description
+        ol.appendChild(li)
+      })
+      appendBubble(ol)
     },
     destroy() { container.remove() },
   }

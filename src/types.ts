@@ -25,7 +25,7 @@ export const SpotterConfigSchema = z.object({
   baseUrl: z.string().url(),
   routes: z.array(RouteSchema),
   actions: z.array(ActionSchema),
-  mcpServers: z.array(MCPServerSchema),
+  mcpServers: z.array(MCPServerSchema).default([]),
 })
 
 export type Route = z.infer<typeof RouteSchema>
