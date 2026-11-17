@@ -9,9 +9,19 @@ Add a natural-language navigation layer to any existing web app. Users type what
 
 ## How it works
 
+Two separate pieces — one for your backend, one for your frontend:
+
+```
+Browser (your frontend)              Your server (Node.js)        OpenAI
+────────────────────────────────────────────────────────────────────────
+Widget (spotter-sdk)      →POST→     createSpotterProxy()  →HTTP→  LLM
+proxyUrl: '/api/spotter'             reads OPENAI_API_KEY
+                                     from server env var
+```
+
 1. You author a `spotter.config.json` that maps your routes, selectors, and API endpoints.
-2. You mount the proxy middleware (Node.js) — your LLM key stays server-side.
-3. You drop the widget script into your frontend — users get a floating chat panel.
+2. You mount the proxy middleware on your **Node.js server** — your LLM key lives in a server-side environment variable and never reaches the browser.
+3. You drop the widget script into your **frontend** — users get a floating chat panel that talks only to your server.
 
 The widget sends queries to your proxy. The proxy routes them through an LLM, matches to your config, and returns either navigation steps or an action result.
 
@@ -102,6 +112,45 @@ Spotter.init({
   sessionToken: () => getSessionToken(),
 })
 ```
+
+## Self-hosting / local dev
+
+You need a Node.js server running alongside your frontend. Minimal example:
+
+```bash
+npm install spotter-sdk express dotenv
+```
+
+```
+# .env  (do not commit)
+OPENAI_API_KEY=sk-...
+```
+
+```js
+// server.mjs
+import 'dotenv/config'
+import express from 'express'
+import { createSpotterProxy } from 'spotter-sdk/proxy'
+
+const app = express()
+app.use(express.json())
+app.use(express.static('public'))  // your frontend lives here
+
+const spotter = createSpotterProxy({
+  config: './spotter.config.json',
+  llm: { provider: 'openai', apiKey: process.env.OPENAI_API_KEY },
+})
+
+app.post('/api/spotter', (req, res) => spotter(req, res))
+app.listen(3000)
+```
+
+```bash
+node server.mjs
+# open http://localhost:3000
+```
+
+For production, set `OPENAI_API_KEY` as an environment variable in your hosting platform (Vercel, Railway, Render, Fly.io, etc.). The key never leaves your server.
 
 ## Response types
 
