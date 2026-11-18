@@ -1,11 +1,15 @@
 import { createLLMClient, routeQuery } from './llm-client'
+import type { LLMConfig } from './llm-client'
 import { summarizeConfig, findRouteByPath, findActionByIntent } from './site-map'
+import { noopAnalytics } from './analytics'
+import type { AnalyticsHandler } from './analytics'
 import { SpotterConfigSchema } from '../types'
 import type { SpotterConfig, SpotterQuery, SpotterResponse, NavigateStep } from '../types'
 
 export interface SpotterProxyOptions {
   config: string | SpotterConfig
-  llm: { provider: 'openai'; apiKey: string }
+  llm: LLMConfig
+  onAnalytics?: AnalyticsHandler
 }
 
 type RequestLike = { body: SpotterQuery }
@@ -14,7 +18,8 @@ type ResponseLike = { json: (data: unknown) => void; status: (code: number) => R
 export function createSpotterProxy(
   options: SpotterProxyOptions
 ): (req: RequestLike, res: ResponseLike) => Promise<void> {
-  const llmClient = createLLMClient(options.llm.apiKey)
+  const llmClient = createLLMClient(options.llm)
+  const analytics = options.onAnalytics ?? noopAnalytics
 
   async function resolveConfig(): Promise<SpotterConfig> {
     if (typeof options.config === 'string') {
@@ -29,7 +34,7 @@ export function createSpotterProxy(
       const { query, url, sessionToken, role } = req.body
       const config = await resolveConfig()
       const summary = summarizeConfig(config)
-      const result = await routeQuery(llmClient, query, summary)
+      const result = await routeQuery(llmClient, query, summary, options.llm.model)
 
       let response: SpotterResponse
 
@@ -63,6 +68,7 @@ export function createSpotterProxy(
         response = { type: 'unhandled', query }
       }
 
+      analytics({ type: 'query', query, responseType: response.type, url, role })
       res.json(response)
     } catch (err) {
       res.json({ type: 'error', message: err instanceof Error ? err.message : 'Unknown error' })
