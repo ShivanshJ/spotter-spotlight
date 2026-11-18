@@ -1,0 +1,6 @@
+{
+  "name": "test-vue-app",
+  "dependencies": {
+    "vue-router": "^4.0.0"
+  }
+}
