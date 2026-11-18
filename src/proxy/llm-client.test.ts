@@ -52,4 +52,18 @@ describe('routeQuery', () => {
     const result = await routeQuery(client as any, 'some query', 'Routes:\n  (none)')
     expect(result.type).toBe('general')
   })
+
+  it('passes baseURL and model to the OpenAI client', async () => {
+    const client = makeMockClient({ type: 'general' })
+    const result = await routeQuery(
+      client as any,
+      'some query',
+      'Routes:\n  (none)',
+      'gpt-4-turbo'
+    )
+    expect(result.type).toBe('general')
+    expect(client.chat.completions.create).toHaveBeenCalledWith(
+      expect.objectContaining({ model: 'gpt-4-turbo' })
+    )
+  })
 })

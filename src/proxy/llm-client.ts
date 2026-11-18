@@ -5,18 +5,25 @@ export type RouteResult =
   | { type: 'action'; actionIntent: string }
   | { type: 'general' }
 
-export function createLLMClient(apiKey: string): OpenAI {
-  return new OpenAI({ apiKey })
+export type LLMConfig = {
+  apiKey: string
+  baseURL?: string
+  model?: string
+}
+
+export function createLLMClient(config: LLMConfig): OpenAI {
+  return new OpenAI({ apiKey: config.apiKey, baseURL: config.baseURL })
 }
 
 export async function routeQuery(
   client: OpenAI,
   query: string,
-  siteMapSummary: string
+  siteMapSummary: string,
+  model = 'gpt-4o-mini'
 ): Promise<RouteResult> {
   try {
     const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model,
       response_format: { type: 'json_object' },
       messages: [
         {
