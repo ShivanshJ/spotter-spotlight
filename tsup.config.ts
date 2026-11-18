@@ -31,4 +31,13 @@ export default defineConfig([
     format: ['esm', 'cjs'] as Format[],
     outDir: 'dist/node',
   },
+  {
+    ...sharedConfig,
+    platform: 'node',
+    entry: { cli: 'src/cli/index.ts' },
+    format: ['esm'] as Format[],
+    outDir: 'dist/cli',
+    banner: { js: '#!/usr/bin/env node' },
+    outExtension() { return { js: '.js' } },
+  },
 ])
