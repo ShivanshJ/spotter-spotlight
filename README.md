@@ -1,10 +1,10 @@
 # spotter-sdk
 
-Add a natural-language navigation layer to any existing web app. Users type what they want; Spotter navigates the UI for them or hits the right API endpoint.
+Add a natural-language navigation layer to any existing web app. Users type what they want; Spotter navigates the UI for them.
 
 ```
 "show me my unpaid invoices" → navigates to /billing/invoices?status=unpaid
-"change to dark mode"        → PATCH /api/preferences { theme: 'dark' }
+"change to dark mode"        → walks user to /settings/appearance
 ```
 
 ## How it works
@@ -12,18 +12,16 @@ Add a natural-language navigation layer to any existing web app. Users type what
 Two separate pieces — one for your backend, one for your frontend:
 
 ```
-Browser (your frontend)              Your server (Node.js)        OpenAI
+Browser (your frontend)              Your server (Node.js)        LLM
 ────────────────────────────────────────────────────────────────────────
-Widget (spotter-sdk)      →POST→     createSpotterProxy()  →HTTP→  LLM
-proxyUrl: '/api/spotter'             reads OPENAI_API_KEY
+Widget (spotter-sdk)      →POST→     createSpotterProxy()  →HTTP→  gpt-4o-mini
+proxyUrl: '/api/spotter'             reads API key
                                      from server env var
 ```
 
-1. You author a `spotter.config.json` that maps your routes, selectors, and API endpoints.
-2. You mount the proxy middleware on your **Node.js server** — your LLM key lives in a server-side environment variable and never reaches the browser.
-3. You drop the widget script into your **frontend** — users get a floating chat panel that talks only to your server.
-
-The widget sends queries to your proxy. The proxy routes them through an LLM, matches to your config, and returns either navigation steps or an action result.
+1. Run `spotter analyze` — scans your codebase, writes `spotter.config.json` automatically.
+2. Mount the proxy middleware on your Node.js server — your LLM key stays server-side.
+3. Add the widget script tag — users get a floating chat panel.
 
 ## Packages
 
@@ -34,38 +32,25 @@ The widget sends queries to your proxy. The proxy routes them through an LLM, ma
 
 ## Quick start
 
-### 1. Author `spotter.config.json`
+### Step 1: Analyze your codebase
 
-```json
-{
-  "version": "1",
-  "baseUrl": "https://app.example.com",
-  "routes": [
-    {
-      "path": "/settings/appearance",
-      "description": "Change theme, language, or display preferences",
-      "selectors": {
-        "themeToggle": "[data-testid='theme-toggle']"
-      }
-    },
-    {
-      "path": "/billing/invoices",
-      "description": "View and manage invoices"
-    }
-  ],
-  "actions": [
-    {
-      "intent": "change theme",
-      "type": "api",
-      "endpoint": "/api/preferences",
-      "auth": "session"
-    }
-  ],
-  "mcpServers": []
-}
+```bash
+npx spotter-sdk analyze
 ```
 
-### 2. Mount the proxy (Express example)
+Detects your framework (Next.js, React Router, Vue Router), extracts routes and selectors, and writes `spotter.config.json`. Set `OPENAI_API_KEY` for LLM-generated descriptions; falls back to path-based descriptions if not set.
+
+```bash
+# Optional flags
+npx spotter-sdk analyze \
+  --root ./my-app \
+  --output ./spotter.config.json \
+  --base-url https://app.example.com
+```
+
+You can also author `spotter.config.json` by hand — see [Config reference](#config-reference).
+
+### Step 2: Mount the proxy
 
 ```ts
 import express from 'express'
@@ -74,27 +59,22 @@ import { createSpotterProxy } from 'spotter-sdk/proxy'
 const app = express()
 app.use(express.json())
 
-const spotterProxy = createSpotterProxy({
-  config: './spotter.config.json',   // path or parsed object
-  llm: {
-    provider: 'openai',
-    apiKey: process.env.OPENAI_API_KEY!,
-  },
+const spotter = createSpotterProxy({
+  config: './spotter.config.json',
+  llm: { apiKey: process.env.OPENAI_API_KEY! },
 })
 
-app.post('/api/spotter', (req, res) => spotterProxy(req, res))
+app.post('/api/spotter', (req, res) => spotter(req, res))
 ```
 
-The proxy accepts `POST` requests with body `{ query, url, sessionToken?, role? }` and returns a `SpotterResponse`.
-
-### 3. Add the widget
+### Step 3: Add the widget
 
 ```html
 <script src="https://unpkg.com/spotter-sdk/dist/index.iife.js"></script>
 <script>
   Spotter.init({
     proxyUrl: '/api/spotter',
-    sessionToken: () => window.__SESSION_TOKEN__,  // optional
+    sessionToken: () => window.__SESSION_TOKEN__,
     onUnhandled: (query) => {
       // forward to your existing chatbot if you have one
     },
@@ -107,15 +87,67 @@ Or with ESM bundlers:
 ```ts
 import { Spotter } from 'spotter-sdk'
 
-Spotter.init({
-  proxyUrl: '/api/spotter',
-  sessionToken: () => getSessionToken(),
+Spotter.init({ proxyUrl: '/api/spotter' })
+```
+
+## LLM providers
+
+Any OpenAI-compatible endpoint works. Set `baseURL` to switch:
+
+```ts
+// OpenAI (default — no baseURL needed)
+createSpotterProxy({ config: '...', llm: { apiKey: process.env.OPENAI_API_KEY! } })
+
+// OpenRouter (access Claude, Gemini, Llama, etc.)
+createSpotterProxy({
+  config: '...',
+  llm: {
+    apiKey: process.env.OPENROUTER_API_KEY!,
+    baseURL: 'https://openrouter.ai/api/v1',
+    model: 'anthropic/claude-3-haiku',
+  },
+})
+
+// Self-hosted Ollama
+createSpotterProxy({
+  config: '...',
+  llm: {
+    apiKey: 'ollama',
+    baseURL: 'http://localhost:11434/v1',
+    model: 'llama3',
+  },
 })
 ```
 
-## Self-hosting / local dev
+The CLI reads the same env vars:
 
-You need a Node.js server running alongside your frontend. Minimal example:
+| Variable | Purpose |
+|---|---|
+| `OPENAI_API_KEY` | LLM key (required for descriptions) |
+| `SPOTTER_LLM_BASE_URL` | Override endpoint (e.g. OpenRouter) |
+| `SPOTTER_LLM_MODEL` | Override model (default: `gpt-4o-mini`) |
+
+## Analytics
+
+Track what your users are asking for:
+
+```ts
+createSpotterProxy({
+  config: './spotter.config.json',
+  llm: { apiKey: process.env.OPENAI_API_KEY! },
+  onAnalytics: (event) => {
+    // event.query        — what the user typed
+    // event.responseType — 'navigate' | 'answer' | 'unhandled' | 'error'
+    // event.url          — page the user was on
+    // event.role         — user role if passed to Spotter.init
+    console.log(event)
+  },
+})
+```
+
+`unhandled` events are the most valuable signal — they show you what users are looking for that Spotter couldn't find. Use them to improve your config or identify missing features.
+
+## Self-hosting / local dev
 
 ```bash
 npm install spotter-sdk express dotenv
@@ -134,11 +166,11 @@ import { createSpotterProxy } from 'spotter-sdk/proxy'
 
 const app = express()
 app.use(express.json())
-app.use(express.static('public'))  // your frontend lives here
+app.use(express.static('public'))
 
 const spotter = createSpotterProxy({
   config: './spotter.config.json',
-  llm: { provider: 'openai', apiKey: process.env.OPENAI_API_KEY },
+  llm: { apiKey: process.env.OPENAI_API_KEY },
 })
 
 app.post('/api/spotter', (req, res) => spotter(req, res))
@@ -147,10 +179,9 @@ app.listen(3000)
 
 ```bash
 node server.mjs
-# open http://localhost:3000
 ```
 
-For production, set `OPENAI_API_KEY` as an environment variable in your hosting platform (Vercel, Railway, Render, Fly.io, etc.). The key never leaves your server.
+For production, set `OPENAI_API_KEY` as an environment variable in your hosting platform. The key never leaves your server.
 
 ## Response types
 
@@ -162,37 +193,37 @@ type SpotterResponse =
   | { type: 'error';    message: string }
 ```
 
-Navigate steps include `selector`, `description`, and `interactionType` (`click | expand | none`).
-
 ## Config reference
+
+`spotter.config.json` is generated by `spotter analyze` and committed to git.
 
 ```ts
 type SpotterConfig = {
   version: '1'
-  baseUrl: string           // canonical origin of your app
+  baseUrl: string
   routes: Route[]
   actions: Action[]
   mcpServers: MCPServer[]
 }
 
 type Route = {
-  path: string              // e.g. "/settings/appearance"
-  description: string       // used for LLM matching
-  selectors?: Record<string, string>  // named CSS selectors for navigation
-  role?: string             // restrict to users with this role
+  path: string
+  description: string        // matched against user queries
+  selectors?: Record<string, string>
+  role?: string
 }
 
 type Action = {
-  intent: string            // e.g. "change theme"
+  intent: string
   type: 'api'
-  endpoint: string          // relative path, e.g. "/api/preferences"
-  auth: 'session'           // always uses the user's session token
+  endpoint: string
+  auth: 'session'
   role?: string
 }
 
 type MCPServer = {
-  url: string               // MCP server URL
-  allowedTools?: string[]   // tool allow-list; omit to allow all
+  url: string
+  allowedTools?: string[]
 }
 ```
 
@@ -200,27 +231,17 @@ type MCPServer = {
 
 ```ts
 type SpotterInitOptions = {
-  proxyUrl: string                        // where your proxy is mounted
-  sessionToken?: () => string | undefined // called per-request
-  role?: string                           // passed to proxy for role-based routing
-  onUnhandled?: (query: string) => void   // called when query type is 'unhandled'
-  spotterKey?: string                     // reserved for Spotter Cloud
+  proxyUrl: string
+  sessionToken?: () => string | undefined
+  role?: string
+  onUnhandled?: (query: string) => void
+  spotterKey?: string
 }
 ```
 
-## Free vs paid
-
-| Feature | Self-hosted OSS |
-|---|---|
-| Navigation (walk user through UI) | ✓ |
-| Direct API actions | coming (action tier) |
-| MCP tool calls | coming (action tier) |
-
-Action execution requires a configured LLM proxy. The OSS proxy stubs action responses today; full action dispatch is on the roadmap.
-
 ## Security
 
-- **LLM key never reaches the browser.** The widget only talks to your proxy; your proxy holds the key.
+- **LLM key never reaches the browser.** The widget only talks to your proxy.
 - **Session tokens are the user's own tokens.** Your backend enforces permissions as normal.
 - **No `innerHTML`.** The widget builds DOM nodes directly to prevent XSS.
 
@@ -228,6 +249,7 @@ Action execution requires a configured LLM proxy. The OSS proxy stubs action res
 
 ```bash
 npm install
-npm test          # 39 tests, vitest
-npm run build     # tsup → dist/ (browser) + dist/node/ (node)
+npm test          # vitest
+npm run build     # tsup → dist/ (browser) + dist/node/ (node) + dist/cli/ (CLI)
+npx spotter-sdk analyze --help
 ```
