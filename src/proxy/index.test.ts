@@ -89,6 +89,36 @@ describe('createSpotterProxy', () => {
     })
   })
 
+  it('returns parent, route and page-action steps when the LLM picks a page action', async () => {
+    const config: SpotterConfig = {
+      ...mockConfig,
+      routes: [
+        { path: '/settings', description: 'Settings hub', selectors: {} },
+        {
+          path: '/settings/billing',
+          description: 'Billing',
+          selectors: {},
+          reachableFrom: ['/settings'],
+          actions: [{ name: 'change_plan', description: 'Change plan', selector: '[data-testid="change-plan"]' }],
+        },
+      ],
+    }
+    vi.mocked(routeQuery).mockResolvedValue({
+      type: 'navigate',
+      routePath: '/settings/billing',
+      actionName: 'change_plan',
+    })
+    const handler = createSpotterProxy({ config, llm: { apiKey: 'test' } })
+    const { req, res, jsonFn } = makeReqRes({ query: 'change my plan', url: 'https://app.com/home' })
+    await handler(req, res)
+    const response = jsonFn.mock.calls[0][0]
+    expect(response.steps.map((s: { selector: string }) => s.selector)).toEqual([
+      'a[href="/settings"]',
+      'a[href="/settings/billing"]',
+      '[data-testid="change-plan"]',
+    ])
+  })
+
   it('does not throw when onAnalytics is not provided', async () => {
     vi.mocked(routeQuery).mockResolvedValue({ type: 'general' })
     const handler = createSpotterProxy({ config: mockConfig, llm: { apiKey: 'test' } })

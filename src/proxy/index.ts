@@ -4,7 +4,8 @@ import { summarizeConfig, findRouteByPath, findActionByIntent } from './site-map
 import { noopAnalytics } from './analytics'
 import type { AnalyticsHandler } from './analytics'
 import { SpotterConfigSchema } from '../types'
-import type { SpotterConfig, SpotterQuery, SpotterResponse, NavigateStep } from '../types'
+import { buildNavigateSteps } from './navigate-steps'
+import type { SpotterConfig, SpotterQuery, SpotterResponse } from '../types'
 
 export interface SpotterProxyOptions {
   config: string | SpotterConfig
@@ -40,23 +41,9 @@ export function createSpotterProxy(
 
       if (result.type === 'navigate') {
         const route = findRouteByPath(config, result.routePath)
-        if (!route) {
-          response = { type: 'unhandled', query }
-        } else {
-          const steps: NavigateStep[] = Object.entries(route.selectors).map(([key, selector]) => ({
-            selector,
-            description: `${route.description} — ${key}`,
-            interactionType: 'click',
-          }))
-          if (steps.length === 0) {
-            steps.push({
-              selector: `a[href="${route.path}"]`,
-              description: `Navigate to ${route.path} — ${route.description}`,
-              interactionType: 'click',
-            })
-          }
-          response = { type: 'navigate', steps }
-        }
+        response = route
+          ? { type: 'navigate', steps: buildNavigateSteps(config, route, result.actionName) }
+          : { type: 'unhandled', query }
       } else if (result.type === 'action') {
         const action = findActionByIntent(config, result.actionIntent)
         if (!action) {
