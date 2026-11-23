@@ -1,0 +1,31 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "spotter-sdk"
+version = "0.0.2"
+description = "Natural-language navigation for any web app: Python backend SDK for Spotter"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "ISC" }
+dependencies = [
+  "openai>=1.40",
+  "pydantic>=2.6",
+]
+
+[project.optional-dependencies]
+fastapi = ["fastapi>=0.110"]
+dev = [
+  "pytest>=8",
+  "pytest-asyncio>=0.23",
+  "httpx>=0.27",
+  "fastapi>=0.110",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["spotter_sdk"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
