@@ -2,6 +2,7 @@ import fsp from 'fs/promises'
 import path from 'path'
 import type { DiscoveredRoute } from './analyzers/types'
 import type { SpotterConfig } from '../types'
+import { deriveReachableFrom } from './reachability'
 
 export type RouteWithDescription = DiscoveredRoute & { description: string }
 
@@ -18,11 +19,16 @@ export async function writeConfig(
   const prior = await readExisting(options.outputPath)
   const priorByPath = new Map(prior?.routes.map(r => [r.path, r]) ?? [])
 
+  const derivedReachableFrom = deriveReachableFrom(routes.map(r => r.path))
+
   const mergedRoutes = routes.map(r => {
     const existing = priorByPath.get(r.path)
     return {
       path: r.path,
       description: existing?.description || r.description,
+      title: existing?.title ?? r.pageTitle,
+      reachableFrom: existing?.reachableFrom ?? derivedReachableFrom.get(r.path),
+      actions: existing?.actions,
       selectors: r.selectors,
     }
   })
