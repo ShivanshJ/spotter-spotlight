@@ -53,6 +53,20 @@ describe('routeQuery', () => {
     expect(result.type).toBe('general')
   })
 
+  it('passes actionName through on a navigate result', async () => {
+    const client = makeMockClient({ type: 'navigate', routePath: '/settings/billing', actionName: 'change_plan' })
+    const result = await routeQuery(client as any, 'change my plan', 'Routes:\n  (none)')
+    expect(result).toEqual({ type: 'navigate', routePath: '/settings/billing', actionName: 'change_plan' })
+  })
+
+  it('sends the routing prompt as the system message', async () => {
+    const client = makeMockClient({ type: 'general' })
+    await routeQuery(client as any, 'q', 'Routes:\n  (none)')
+    const call = client.chat.completions.create.mock.calls[0][0]
+    expect(call.messages[0].content).toContain('Site map:\nRoutes:\n  (none)')
+    expect(call.messages[0].content).toContain('actionName')
+  })
+
   it('passes baseURL and model to the OpenAI client', async () => {
     const client = makeMockClient({ type: 'general' })
     const result = await routeQuery(
