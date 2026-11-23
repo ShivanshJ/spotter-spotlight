@@ -60,3 +60,46 @@ describe('SpotterConfigSchema', () => {
     ).toThrow()
   })
 })
+
+describe('Route v1.1 fields', () => {
+  const base = { version: '1', baseUrl: 'https://app.com', actions: [], mcpServers: [] }
+
+  it('parses a route with title, reachableFrom and page actions', () => {
+    const config = SpotterConfigSchema.parse({
+      ...base,
+      routes: [
+        {
+          path: '/settings/billing',
+          description: 'Manage subscription',
+          title: 'Billing',
+          reachableFrom: ['/settings'],
+          actions: [
+            { name: 'change_plan', description: 'Change subscription plan', selector: '[data-testid="change-plan"]' },
+          ],
+        },
+      ],
+    })
+    expect(config.routes[0].title).toBe('Billing')
+    expect(config.routes[0].reachableFrom).toEqual(['/settings'])
+    expect(config.routes[0].actions?.[0].name).toBe('change_plan')
+  })
+
+  it('still parses a v1.0 route without the new fields', () => {
+    const config = SpotterConfigSchema.parse({
+      ...base,
+      routes: [{ path: '/rewards', description: 'Points' }],
+    })
+    expect(config.routes[0].actions).toBeUndefined()
+    expect(config.routes[0].reachableFrom).toBeUndefined()
+    expect(config.routes[0].selectors).toEqual({})
+  })
+
+  it('rejects a page action missing its selector', () => {
+    expect(() =>
+      SpotterConfigSchema.parse({
+        ...base,
+        routes: [{ path: '/x', description: 'X', actions: [{ name: 'a', description: 'A' }] }],
+      })
+    ).toThrow()
+  })
+})

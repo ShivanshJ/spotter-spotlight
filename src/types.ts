@@ -1,8 +1,17 @@
 import { z } from 'zod'
 
+export const PageActionSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  selector: z.string(),
+})
+
 export const RouteSchema = z.object({
   path: z.string(),
   description: z.string(),
+  title: z.string().optional(),
+  reachableFrom: z.array(z.string()).optional(),
+  actions: z.array(PageActionSchema).optional(),
   selectors: z.record(z.string()).default({}),
   role: z.string().optional(),
 })
@@ -29,6 +38,7 @@ export const SpotterConfigSchema = z.object({
 })
 
 export type Route = z.infer<typeof RouteSchema>
+export type PageAction = z.infer<typeof PageActionSchema>
 export type Action = z.infer<typeof ActionSchema>
 export type MCPServer = z.infer<typeof MCPServerSchema>
 export type SpotterConfig = z.infer<typeof SpotterConfigSchema>
