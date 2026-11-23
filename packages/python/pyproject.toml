@@ -12,6 +12,7 @@ license = { text = "ISC" }
 dependencies = [
   "openai>=1.40",
   "pydantic>=2.6",
+  "typing_extensions>=4.7",
 ]
 
 [project.optional-dependencies]
