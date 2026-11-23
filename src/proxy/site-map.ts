@@ -7,10 +7,15 @@ export async function loadConfig(configPath: string): Promise<SpotterConfig> {
   return SpotterConfigSchema.parse(JSON.parse(raw))
 }
 
+function routeLines(route: Route): string[] {
+  const reachable = route.reachableFrom?.length ? ` [reachable from: ${route.reachableFrom.join(', ')}]` : ''
+  const role = route.role ? ` [role: ${route.role}]` : ''
+  const pageActions = (route.actions ?? []).map((a) => `      action ${a.name}: ${a.description}`)
+  return [`  - ${route.path}: "${route.description}"${reachable}${role}`, ...pageActions]
+}
+
 export function summarizeConfig(config: SpotterConfig): string {
-  const routes = config.routes
-    .map((r) => `  - ${r.path}: "${r.description}"${r.role ? ` [role: ${r.role}]` : ''}`)
-    .join('\n')
+  const routes = config.routes.flatMap(routeLines).join('\n')
 
   const actions = config.actions
     .map((a) => `  - "${a.intent}" → ${a.endpoint}${a.role ? ` [role: ${a.role}]` : ''}`)

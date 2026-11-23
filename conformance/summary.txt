@@ -1,0 +1,10 @@
+Routes:
+  - /settings: "Account settings hub"
+  - /settings/billing: "Manage subscription and payment" [reachable from: /settings]
+      action change_plan: Upgrade or downgrade subscription plan
+      action download_invoice: Download an invoice PDF
+  - /rewards: "Points balance and rewards history"
+  - /settings/appearance: "Theme and display preferences"
+
+Actions:
+  - "get user points balance" → GET /api/user/rewards

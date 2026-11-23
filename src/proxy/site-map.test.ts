@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { summarizeConfig, findRouteByPath, findActionByIntent } from './site-map'
 import type { SpotterConfig } from '../types'
+import { loadConformanceConfig, readConformanceText } from '../test-helpers/conformance'
 
 const config: SpotterConfig = {
   version: '1',
@@ -61,5 +62,19 @@ describe('findActionByIntent', () => {
 
   it('returns undefined for unknown intent', () => {
     expect(findActionByIntent(config, 'delete account')).toBeUndefined()
+  })
+})
+
+describe('summarizeConfig conformance', () => {
+  it('matches the shared conformance summary', () => {
+    expect(summarizeConfig(loadConformanceConfig())).toBe(readConformanceText('summary.txt'))
+  })
+
+  it('appends role after reachability', () => {
+    const summary = summarizeConfig({
+      ...config,
+      routes: [{ path: '/admin/users', description: 'Users', selectors: {}, reachableFrom: ['/admin'], role: 'admin' }],
+    })
+    expect(summary).toContain('"Users" [reachable from: /admin] [role: admin]')
   })
 })

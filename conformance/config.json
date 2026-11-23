@@ -1,0 +1,49 @@
+{
+  "version": "1",
+  "baseUrl": "https://app.example.com",
+  "routes": [
+    {
+      "path": "/settings",
+      "description": "Account settings hub",
+      "selectors": {}
+    },
+    {
+      "path": "/settings/billing",
+      "description": "Manage subscription and payment",
+      "title": "Billing",
+      "reachableFrom": ["/settings"],
+      "selectors": {},
+      "actions": [
+        {
+          "name": "change_plan",
+          "description": "Upgrade or downgrade subscription plan",
+          "selector": "[data-testid=\"change-plan\"]"
+        },
+        {
+          "name": "download_invoice",
+          "description": "Download an invoice PDF",
+          "selector": "[aria-label=\"Download invoice\"]"
+        }
+      ]
+    },
+    {
+      "path": "/rewards",
+      "description": "Points balance and rewards history",
+      "selectors": {}
+    },
+    {
+      "path": "/settings/appearance",
+      "description": "Theme and display preferences",
+      "selectors": { "themeToggle": "[data-testid=\"theme-toggle\"]" }
+    }
+  ],
+  "actions": [
+    {
+      "intent": "get user points balance",
+      "type": "api",
+      "endpoint": "GET /api/user/rewards",
+      "auth": "session"
+    }
+  ],
+  "mcpServers": []
+}
