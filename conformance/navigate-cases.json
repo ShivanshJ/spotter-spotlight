@@ -1,0 +1,42 @@
+[
+  {
+    "name": "page action with parent",
+    "routePath": "/settings/billing",
+    "actionName": "change_plan",
+    "expectedSteps": [
+      { "selector": "a[href=\"/settings\"]", "description": "Navigate to /settings — Account settings hub", "interactionType": "click" },
+      { "selector": "a[href=\"/settings/billing\"]", "description": "Navigate to /settings/billing — Manage subscription and payment", "interactionType": "click" },
+      { "selector": "[data-testid=\"change-plan\"]", "description": "Upgrade or downgrade subscription plan", "interactionType": "click" }
+    ]
+  },
+  {
+    "name": "route with parent and no selectors",
+    "routePath": "/settings/billing",
+    "expectedSteps": [
+      { "selector": "a[href=\"/settings\"]", "description": "Navigate to /settings — Account settings hub", "interactionType": "click" },
+      { "selector": "a[href=\"/settings/billing\"]", "description": "Navigate to /settings/billing — Manage subscription and payment", "interactionType": "click" }
+    ]
+  },
+  {
+    "name": "route with legacy selectors",
+    "routePath": "/settings/appearance",
+    "expectedSteps": [
+      { "selector": "[data-testid=\"theme-toggle\"]", "description": "Theme and display preferences — themeToggle", "interactionType": "click" }
+    ]
+  },
+  {
+    "name": "plain route",
+    "routePath": "/rewards",
+    "expectedSteps": [
+      { "selector": "a[href=\"/rewards\"]", "description": "Navigate to /rewards — Points balance and rewards history", "interactionType": "click" }
+    ]
+  },
+  {
+    "name": "unknown action name falls back to plain route",
+    "routePath": "/rewards",
+    "actionName": "does_not_exist",
+    "expectedSteps": [
+      { "selector": "a[href=\"/rewards\"]", "description": "Navigate to /rewards — Points balance and rewards history", "interactionType": "click" }
+    ]
+  }
+]
