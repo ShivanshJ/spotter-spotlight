@@ -1,4 +1,5 @@
 import json
+import logging
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -75,6 +76,16 @@ async def test_falls_back_to_general_when_the_call_raises():
     client, create = make_client("{}")
     create.side_effect = RuntimeError("network failure")
     assert await route_query(client, "q", "s") == {"type": "general"}
+
+
+async def test_logs_a_warning_when_the_call_raises(caplog):
+    client, create = make_client("{}")
+    create.side_effect = RuntimeError("network failure")
+    with caplog.at_level(logging.WARNING, logger="spotter_sdk"):
+        await route_query(client, "q", "s")
+    record = next(r for r in caplog.records if r.getMessage() == "spotter LLM routing failed")
+    assert record.levelno == logging.WARNING
+    assert record.exc_info is not None
 
 
 def test_create_llm_client_passes_base_url():

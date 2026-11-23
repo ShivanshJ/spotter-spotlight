@@ -1,4 +1,5 @@
 import json
+import logging
 from dataclasses import dataclass
 from typing import Any
 
@@ -22,6 +23,8 @@ Only return "navigate" or "action" if there is a clear match. When unsure, retur
 
 Site map:
 """
+
+_logger = logging.getLogger("spotter_sdk")
 
 _GENERAL: dict[str, Any] = {"type": "general"}
 
@@ -62,4 +65,5 @@ async def route_query(
         result = json.loads(content)
         return result if isinstance(result, dict) else dict(_GENERAL)
     except Exception:
+        _logger.warning("spotter LLM routing failed", exc_info=True)
         return dict(_GENERAL)

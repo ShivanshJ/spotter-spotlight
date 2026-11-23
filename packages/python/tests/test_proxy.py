@@ -1,4 +1,5 @@
 import json
+import logging
 
 from spotter_sdk import proxy as proxy_module
 from spotter_sdk.llm_client import LLMConfig
@@ -6,6 +7,7 @@ from spotter_sdk.proxy import create_spotter_proxy
 from tests.helpers import CONFORMANCE_DIR, read_conformance_json
 
 LLM = LLMConfig(api_key="test")
+GENERIC_ERROR = "Spotter could not process this request"
 QUERY = {"query": "change my plan", "url": "https://app.com/home"}
 
 
@@ -75,18 +77,33 @@ async def test_returns_error_when_routing_raises(monkeypatch):
 
     monkeypatch.setattr(proxy_module, "route_query", boom)
     handle = create_spotter_proxy(config=read_conformance_json("config.json"), llm=LLM)
-    assert await handle(QUERY) == {"type": "error", "message": "network failure"}
+    assert await handle(QUERY) == {"type": "error", "message": GENERIC_ERROR}
+
+
+async def test_logs_the_exception_when_routing_raises(monkeypatch, caplog):
+    async def boom(client, query, summary, model):
+        raise RuntimeError("network failure")
+
+    monkeypatch.setattr(proxy_module, "route_query", boom)
+    handle = create_spotter_proxy(config=read_conformance_json("config.json"), llm=LLM)
+    with caplog.at_level(logging.ERROR, logger="spotter_sdk"):
+        response = await handle(QUERY)
+    record = next(r for r in caplog.records if r.getMessage() == "spotter request failed")
+    assert record.exc_info is not None
+    assert "network failure" not in json.dumps(response)
 
 
 async def test_returns_error_for_invalid_query():
     handle = create_spotter_proxy(config=read_conformance_json("config.json"), llm=LLM)
     response = await handle({"url": "https://app.com"})
-    assert response["type"] == "error"
+    assert response == {"type": "error", "message": GENERIC_ERROR}
 
 
 async def test_returns_error_for_missing_config_file():
     handle = create_spotter_proxy(config="/does/not/exist.json", llm=LLM)
-    assert (await handle(QUERY))["type"] == "error"
+    response = await handle(QUERY)
+    assert response == {"type": "error", "message": GENERIC_ERROR}
+    assert "/does/not/exist.json" not in response["message"]
 
 
 async def test_passes_the_configured_model_to_routing(monkeypatch):
@@ -105,7 +122,7 @@ async def test_passes_the_configured_model_to_routing(monkeypatch):
     assert seen["model"] == "anthropic/claude-sonnet-4"
 
 
-async def test_emits_analytics_event(monkeypatch):
+async def test_emits_analytics_event_with_role(monkeypatch):
     route_returns(monkeypatch, {"type": "navigate", "routePath": "/rewards"})
     events = []
     handle = create_spotter_proxy(
@@ -121,6 +138,24 @@ async def test_emits_analytics_event(monkeypatch):
             "role": "admin",
         }
     ]
+
+
+async def test_omits_role_from_analytics_event_when_request_has_none(monkeypatch):
+    route_returns(monkeypatch, {"type": "navigate", "routePath": "/rewards"})
+    events = []
+    handle = create_spotter_proxy(
+        config=read_conformance_json("config.json"), llm=LLM, on_analytics=events.append
+    )
+    await handle(QUERY)
+    assert events == [
+        {
+            "type": "query",
+            "query": QUERY["query"],
+            "responseType": "navigate",
+            "url": QUERY["url"],
+        }
+    ]
+    assert "role" not in events[0]
 
 
 async def test_awaits_async_analytics_handlers(monkeypatch):

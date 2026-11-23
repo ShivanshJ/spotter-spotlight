@@ -1,11 +1,10 @@
 import asyncio
-import inspect
 import logging
 import os
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-from .analytics import AnalyticsHandler, SpotterEvent, noop_analytics
+from .analytics import AnalyticsHandler, SpotterEvent, emit_event, noop_analytics
 from .llm_client import DEFAULT_MODEL, LLMConfig, create_llm_client, route_query
 from .navigate_steps import build_navigate_steps
 from .site_map import find_action_by_intent, find_route_by_path, load_config, summarize_config
@@ -52,13 +51,16 @@ def _build_response(config: SpotterConfig, query: str, result: dict[str, Any]) -
     return _unhandled(query)
 
 
-async def _emit(handler: AnalyticsHandler, event: SpotterEvent) -> None:
-    try:
-        outcome = handler(event)
-        if inspect.isawaitable(outcome):
-            await outcome
-    except Exception:
-        _logger.exception("spotter analytics handler failed")
+def _build_event(request: SpotterQuery, response: dict[str, Any]) -> SpotterEvent:
+    event: SpotterEvent = {
+        "type": "query",
+        "query": request.query,
+        "responseType": response["type"],
+        "url": request.url,
+    }
+    if request.role is not None:
+        event["role"] = request.role
+    return event
 
 
 def create_spotter_proxy(
@@ -77,18 +79,10 @@ def create_spotter_proxy(
             resolved = await _resolve_config(config)
             result = await route_query(client, request.query, summarize_config(resolved), model)
             response = _build_response(resolved, request.query, result)
-            await _emit(
-                analytics,
-                {
-                    "type": "query",
-                    "query": request.query,
-                    "responseType": response["type"],
-                    "url": request.url,
-                    "role": request.role,
-                },
-            )
+            await emit_event(analytics, _build_event(request, response))
             return response
-        except Exception as error:
-            return {"type": "error", "message": str(error) or "Unknown error"}
+        except Exception:
+            _logger.exception("spotter request failed")
+            return {"type": "error", "message": "Spotter could not process this request"}
 
     return handle
