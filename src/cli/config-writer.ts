@@ -14,7 +14,7 @@ async function readExisting(outputPath: string): Promise<SpotterConfig | null> {
 
 export async function writeConfig(
   routes: RouteWithDescription[],
-  options: { outputPath: string; baseUrl: string }
+  options: { outputPath: string }
 ): Promise<void> {
   const prior = await readExisting(options.outputPath)
   const priorByPath = new Map(prior?.routes.map(r => [r.path, r]) ?? [])
@@ -35,7 +35,6 @@ export async function writeConfig(
 
   const config: SpotterConfig = {
     version: '1',
-    baseUrl: prior?.baseUrl ?? options.baseUrl,
     routes: mergedRoutes,
     actions: prior?.actions ?? [],
     mcpServers: prior?.mcpServers ?? [],

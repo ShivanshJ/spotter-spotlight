@@ -31,7 +31,6 @@ export const MCPServerSchema = z.object({
 
 export const SpotterConfigSchema = z.object({
   version: z.literal('1'),
-  baseUrl: z.string().url(),
   routes: z.array(RouteSchema),
   actions: z.array(ActionSchema),
   mcpServers: z.array(MCPServerSchema).default([]),

@@ -11,7 +11,6 @@ import { createSpotterProxy } from './index'
 
 const mockConfig: SpotterConfig = {
   version: '1',
-  baseUrl: 'https://app.com',
   mcpServers: [],
   routes: [
     {

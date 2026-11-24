@@ -3,7 +3,7 @@ from pydantic import ValidationError
 
 from spotter_sdk.types import SpotterConfig, SpotterQuery
 
-BASE = {"version": "1", "baseUrl": "https://app.com", "actions": [], "mcpServers": []}
+BASE = {"version": "1", "actions": [], "mcpServers": []}
 
 
 def test_parses_route_with_page_actions_and_reachability():
@@ -55,3 +55,8 @@ def test_query_accepts_camel_case_session_token():
     query = SpotterQuery.model_validate({"query": "q", "url": "https://app.com", "sessionToken": "t"})
     assert query.session_token == "t"
     assert query.role is None
+
+
+def test_ignores_a_legacy_base_url():
+    config = SpotterConfig.model_validate({**BASE, "baseUrl": "https://app.com", "routes": []})
+    assert not hasattr(config, "base_url")

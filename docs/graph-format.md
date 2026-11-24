@@ -5,7 +5,6 @@
 ```json
 {
   "version": "1",
-  "baseUrl": "https://app.example.com",
   "routes": [
     {
       "path": "/settings/billing",

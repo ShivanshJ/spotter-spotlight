@@ -5,7 +5,6 @@ describe('SpotterConfigSchema', () => {
   it('parses a valid minimal config', () => {
     const config = SpotterConfigSchema.parse({
       version: '1',
-      baseUrl: 'https://app.com',
       routes: [],
       actions: [],
       mcpServers: [],
@@ -17,7 +16,6 @@ describe('SpotterConfigSchema', () => {
   it('parses a config with routes and actions', () => {
     const config = SpotterConfigSchema.parse({
       version: '1',
-      baseUrl: 'https://app.com',
       routes: [
         {
           path: '/settings/appearance',
@@ -42,18 +40,27 @@ describe('SpotterConfigSchema', () => {
     expect(config.mcpServers[0].url).toBe('https://api.app.com/mcp')
   })
 
-  it('rejects config missing baseUrl', () => {
-    expect(() =>
-      SpotterConfigSchema.parse({ version: '1', routes: [], actions: [], mcpServers: [] })
-    ).toThrow()
+  it('accepts a config without baseUrl', () => {
+    const config = SpotterConfigSchema.parse({ version: '1', routes: [], actions: [], mcpServers: [] })
+    expect(config.routes).toEqual([])
+  })
+
+  it('still accepts a legacy config that contains baseUrl', () => {
+    const config = SpotterConfigSchema.parse({
+      version: '1',
+      baseUrl: 'https://app.com',
+      routes: [],
+      actions: [],
+      mcpServers: [],
+    })
+    expect(config).not.toHaveProperty('baseUrl')
   })
 
   it('rejects route missing description', () => {
     expect(() =>
       SpotterConfigSchema.parse({
         version: '1',
-        baseUrl: 'https://app.com',
-        routes: [{ path: '/foo' }],
+          routes: [{ path: '/foo' }],
         actions: [],
         mcpServers: [],
       })
@@ -62,7 +69,7 @@ describe('SpotterConfigSchema', () => {
 })
 
 describe('Route v1.1 fields', () => {
-  const base = { version: '1', baseUrl: 'https://app.com', actions: [], mcpServers: [] }
+  const base = { version: '1', actions: [], mcpServers: [] }
 
   it('parses a route with title, reachableFrom and page actions', () => {
     const config = SpotterConfigSchema.parse({

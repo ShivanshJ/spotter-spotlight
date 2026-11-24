@@ -39,7 +39,6 @@ class MCPServer(_Model):
 
 class SpotterConfig(_Model):
     version: Literal["1"]
-    base_url: str
     routes: list[Route]
     actions: list[Action]
     mcp_servers: list[MCPServer] = Field(default_factory=list)

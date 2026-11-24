@@ -13,7 +13,6 @@ function flag(name: string): string | undefined {
 if (command === 'analyze') {
   const rootDir = path.resolve(flag('--root') ?? process.cwd())
   const outputPath = path.resolve(flag('--output') ?? path.join(rootDir, 'spotter.config.json'))
-  const baseUrl = flag('--base-url') ?? 'https://your-app.com'
 
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) {
@@ -24,13 +23,13 @@ if (command === 'analyze') {
     ? { apiKey, baseURL: process.env.SPOTTER_LLM_BASE_URL, model: process.env.SPOTTER_LLM_MODEL }
     : null
 
-  analyze({ rootDir, outputPath, baseUrl, llmConfig }).catch(err => {
+  analyze({ rootDir, outputPath, llmConfig }).catch(err => {
     console.error(`Error: ${err instanceof Error ? err.message : String(err)}`)
     process.exit(1)
   })
 } else {
   console.log(
-    'Usage: spotter analyze [--root <dir>] [--output <path>] [--base-url <url>]\n\n' +
+    'Usage: spotter analyze [--root <dir>] [--output <path>]\n\n' +
     'Environment:\n' +
     '  OPENAI_API_KEY       LLM key for description generation\n' +
     '  SPOTTER_LLM_BASE_URL Override LLM endpoint (e.g. OpenRouter)\n' +

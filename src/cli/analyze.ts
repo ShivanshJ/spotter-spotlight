@@ -8,12 +8,11 @@ import type { RouteWithDescription } from './config-writer'
 export type AnalyzeOptions = {
   rootDir: string
   outputPath: string
-  baseUrl: string
   llmConfig: LLMConfig | null
 }
 
 export async function analyze(options: AnalyzeOptions): Promise<void> {
-  const { rootDir, outputPath, baseUrl, llmConfig } = options
+  const { rootDir, outputPath, llmConfig } = options
 
   const analyzer = detectAnalyzer(rootDir)
   if (!analyzer) {
@@ -40,7 +39,7 @@ export async function analyze(options: AnalyzeOptions): Promise<void> {
     description: descriptions.get(r.path) ?? r.path,
   }))
 
-  await writeConfig(routesWithDescriptions, { outputPath, baseUrl })
+  await writeConfig(routesWithDescriptions, { outputPath })
   console.log(`✓ Written to ${path.relative(process.cwd(), outputPath)}`)
   console.log('\nNext steps: mount the proxy on your server, then add the widget script tag.')
 }

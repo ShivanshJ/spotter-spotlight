@@ -5,7 +5,6 @@ import { loadConformanceConfig, readConformanceText } from '../test-helpers/conf
 
 const config: SpotterConfig = {
   version: '1',
-  baseUrl: 'https://app.com',
   mcpServers: [],
   routes: [
     {

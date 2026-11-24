@@ -16,7 +16,6 @@ def test_summary_appends_role_after_reachability():
     config = SpotterConfig.model_validate(
         {
             "version": "1",
-            "baseUrl": "https://app.com",
             "actions": [],
             "routes": [
                 {"path": "/admin/users", "description": "Users", "reachableFrom": ["/admin"], "role": "admin"}
@@ -28,7 +27,7 @@ def test_summary_appends_role_after_reachability():
 
 def test_summary_of_empty_config():
     config = SpotterConfig.model_validate(
-        {"version": "1", "baseUrl": "https://app.com", "actions": [], "routes": []}
+        {"version": "1", "actions": [], "routes": []}
     )
     assert summarize_config(config) == "Routes:\n  (none)\n\nActions:\n  (none)"
 

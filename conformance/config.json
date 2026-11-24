@@ -1,6 +1,5 @@
 {
   "version": "1",
-  "baseUrl": "https://app.example.com",
   "routes": [
     {
       "path": "/settings",
@@ -11,7 +10,9 @@
       "path": "/settings/billing",
       "description": "Manage subscription and payment",
       "title": "Billing",
-      "reachableFrom": ["/settings"],
+      "reachableFrom": [
+        "/settings"
+      ],
       "selectors": {},
       "actions": [
         {
@@ -34,7 +35,9 @@
     {
       "path": "/settings/appearance",
       "description": "Theme and display preferences",
-      "selectors": { "themeToggle": "[data-testid=\"theme-toggle\"]" }
+      "selectors": {
+        "themeToggle": "[data-testid=\"theme-toggle\"]"
+      }
     }
   ],
   "actions": [
