@@ -6,7 +6,8 @@
   "module": "dist/node/proxy.esm.js",
   "browser": "dist/index.iife.js",
   "bin": {
-    "spotter": "./dist/cli/cli.js"
+    "spotter": "./dist/cli/cli.js",
+    "spotter-sdk": "./dist/cli/cli.js"
   },
   "exports": {
     ".": {
