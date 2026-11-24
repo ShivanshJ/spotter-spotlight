@@ -9,14 +9,6 @@ function linkStep(route: Route): NavigateStep {
   }
 }
 
-function selectorSteps(route: Route): NavigateStep[] {
-  return Object.entries(route.selectors).map(([key, selector]) => ({
-    selector,
-    description: `${route.description} — ${key}`,
-    interactionType: 'click',
-  }))
-}
-
 function parentSteps(config: SpotterConfig, route: Route): NavigateStep[] {
   const parent = (route.reachableFrom ?? [])
     .map((path) => findRouteByPath(config, path))
@@ -37,9 +29,6 @@ export function buildNavigateSteps(
       { selector: pageAction.selector, description: pageAction.description, interactionType: 'click' },
     ]
   }
-
-  const legacySteps = selectorSteps(route)
-  if (legacySteps.length > 0) return legacySteps
 
   return [...parentSteps(config, route), linkStep(route)]
 }

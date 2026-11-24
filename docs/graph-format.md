@@ -32,7 +32,7 @@
 | `title` | no | Human page name |
 | `reachableFrom` | no | Paths of pages the user passes through to reach this one (navigation graph) |
 | `actions` | no | Page actions: things a user can do on this page |
-| `selectors` | no | Named CSS selectors (v1.0 compatibility; walked in order when no page action is chosen) |
+| `selectors` | no | Named CSS selectors discovered by `spotter analyze`. Informational: use them as a reference when writing page actions. They are not clicked during navigation |
 | `role` | no | Restrict to users with this role |
 
 ## Page action
@@ -52,8 +52,7 @@ Cross-page API actions (`intent`, `type: "api"`, `endpoint`, `auth`, optional `r
 Given a chosen route and optional page action name:
 
 1. Page action found: `[link to first resolvable reachableFrom parent]`, `[link to route]`, `[click action selector]`.
-2. No page action, route has `selectors`: one click step per selector (v1.0 behaviour).
-3. Otherwise: `[link to parent]`, `[link to route]`.
+2. Otherwise: `[link to parent]`, `[link to route]`.
 
 A link step uses selector `a[href="<path>"]`. A parent that is not itself a route in the config is skipped.
 
