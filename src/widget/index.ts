@@ -8,7 +8,6 @@ export interface SpotterInitOptions {
   sessionToken?: () => string | undefined
   role?: string
   onUnhandled?: (query: string) => void
-  spotterKey?: string
 }
 
 let ui: ReturnType<typeof createUI> | null = null

@@ -1,19 +1,17 @@
 {
-    "compilerOptions": {
-        "strict": true,
-        "noImplicitAny": true,
-        "esModuleInterop": true,
-        "strictNullChecks": true,
-        "target": "ES2022",
-        "moduleResolution": "Node10",         // ✅ Modern module resolution
-        "module": "ESNext",                     // ✅ Match ESM build
-        "declaration": true,
-        "isolatedModules": true,
-        "noEmit": true,
-        "outDir": "dist",
-        "allowJs": true,
-        "lib": ["esnext", "dom", "dom.iterable"],
-    },
-    "include": ["src"],
-    "exclude": ["node_modules", "examples/spotter-demo", "build","dist", "**/*.test.ts"]
+  "compilerOptions": {
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "target": "ES2022",
+    "moduleResolution": "Node10",
+    "module": "ESNext",
+    "declaration": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "outDir": "dist",
+    "lib": ["esnext", "dom", "dom.iterable"]
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "**/__fixtures__/**", "**/*.test.ts"]
 }

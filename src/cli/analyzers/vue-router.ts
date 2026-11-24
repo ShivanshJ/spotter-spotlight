@@ -1,7 +1,7 @@
 import fs from 'fs'
 import fsp from 'fs/promises'
 import path from 'path'
-import type { FrameworkAnalyzer, DiscoveredRoute } from './types'
+import type { FrameworkAnalyzer } from './types'
 import { extractSelectors, extractApiCalls } from './extract'
 
 function existsSync(filePath: string): boolean {

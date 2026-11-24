@@ -1,7 +1,7 @@
 {
   "name": "spotter-sdk",
   "version": "0.0.2",
-  "description": "spotlight for enterprise applications",
+  "description": "Natural-language navigation and agent actions for any web app",
   "main": "dist/node/proxy.cjs",
   "module": "dist/node/proxy.esm.js",
   "browser": "dist/index.iife.js",
@@ -10,10 +10,12 @@
   },
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "browser": "./dist/index.esm.js",
       "import": "./dist/index.esm.js"
     },
     "./proxy": {
+      "types": "./dist/node/proxy.d.ts",
       "import": "./dist/node/proxy.esm.js",
       "require": "./dist/node/proxy.cjs"
     }
@@ -24,24 +26,28 @@
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run lint && npm run typecheck && npm test"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "formdata-polyfill": "^4.0.10",
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "globals": "^17.14.0",
     "happy-dom": "^21.0.4",
-    "jsdom": "^25.0.0",
     "tsup": "^8.3.6",
     "typescript": "^5.7.3",
+    "typescript-eslint": "^8.74.0",
     "vitest": "^5.1.0"
   },
   "dependencies": {
-    "@babycommando/entity-db": "^1.0.9",
     "openai": "^4.82.0",
-    "turndown": "^7.2.0",
     "zod": "^3.24.1"
   },
   "type": "module",
-  "sourcemap": true
+  "sourcemap": true,
+  "types": "dist/index.d.ts"
 }

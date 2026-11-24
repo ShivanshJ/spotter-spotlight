@@ -32,7 +32,7 @@ export function createSpotterProxy(
 
   return async (req: RequestLike, res: ResponseLike) => {
     try {
-      const { query, url, sessionToken, role } = req.body
+      const { query, url, role } = req.body
       const config = await resolveConfig()
       const summary = summarizeConfig(config)
       const result = await routeQuery(llmClient, query, summary, options.llm.model)

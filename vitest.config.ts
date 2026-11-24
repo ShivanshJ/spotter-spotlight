@@ -11,7 +11,7 @@ export default defineConfig({
       },
       {
         test: {
-          include: ['src/proxy/**/*.test.ts', 'src/**/*.test.ts'],
+          include: ['src/**/*.test.ts', 'eslint-rules/**/*.test.js'],
           exclude: ['src/widget/**/*.test.ts'],
           environment: 'node',
         },
