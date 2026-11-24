@@ -19,6 +19,7 @@ export interface SpotterInitOptions {
 export interface SpotterEnvironment {
   location: FlowLocation
   now: () => number
+  waitTimeoutMs?: number
 }
 
 interface Instance {
@@ -41,7 +42,7 @@ function buildRunner(options: SpotterInitOptions, navigator: NavigatorController
   return createFlowRunner({
     highlighter: navigator,
     store: createFlowStore(),
-    waitForElement: (selector) => waitForElement(selector),
+    waitForElement: (selector) => waitForElement(selector, { timeoutMs: env.waitTimeoutMs }),
     location: env.location,
     mode: options.mode ?? 'guided',
     onEvent: safely(options.onFlowEvent),

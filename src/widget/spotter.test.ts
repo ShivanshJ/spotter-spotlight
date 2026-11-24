@@ -14,7 +14,7 @@ let fakeLocation: { pathname: string; assign: ReturnType<typeof vi.fn> }
 let spotter: ReturnType<typeof createSpotter>
 
 function newSpotter() {
-  return createSpotter(() => ({ location: fakeLocation, now: () => Date.now() }))
+  return createSpotter(() => ({ location: fakeLocation, now: () => Date.now(), waitTimeoutMs: 30 }))
 }
 
 function tooltipText(): string | null {
@@ -113,9 +113,9 @@ describe('missing link target', () => {
     const steps = [step('a[href="/rewards"]', 'Rewards'), step('#two', 'Second')]
     spotter.init({ proxyUrl: '/p' })
     await ask(steps)
-    await vi.waitFor(() => expect(fakeLocation.assign).toHaveBeenCalledWith('/rewards'), { timeout: 4000 })
+    await vi.waitFor(() => expect(fakeLocation.assign).toHaveBeenCalledWith('/rewards'))
     expect(JSON.parse(sessionStorage.getItem('spotter:flow')!).index).toBe(1)
-  }, 6000)
+  })
 })
 
 describe('destroy', () => {
