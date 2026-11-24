@@ -127,6 +127,8 @@ Widget  ──POST /api/spotter──▶ Spotter proxy ──routing prompt─�
 2. **Route (request time).** The proxy gives the LLM a compact summary of the map plus the user's question. The LLM picks a route and, optionally, a page action.
 3. **Navigate (in the browser).** The proxy turns that choice into ordered steps (parent page, target page, action). The widget walks the user through them with the user's own session.
 
+By default the widget runs in **guided** mode: it highlights each step and waits for the user to click it, then moves on to the next one. It survives full page loads and falls back to a direct navigation if a link is missing. Set `mode: 'auto'` to have Spotter click each step for the user. Auto mode is opt-in, so only use it where every action is non-destructive.
+
 The map is plain JSON committed to git. You can read it, review it in a PR and edit it by hand. Edits survive re-running `analyze`.
 
 ### Spotter vs. a chatbot
@@ -211,6 +213,8 @@ Handlers can be sync or async. A handler that raises is logged and never breaks 
 
 </details>
 
+The widget's `onFlowEvent` callback reports whether each navigation flow was completed, failed or abandoned.
+
 For each `unhandled` query, either improve a page `description`, add a page action, or confirm it's a feature your app doesn't have. Pipe the same events into your own analytics (PostHog, Segment, a warehouse) in the handler.
 
 ---
@@ -268,6 +272,8 @@ type SpotterInitOptions = {
   sessionToken?: () => string | undefined // the signed-in user's token, passed to your backend
   role?: string                           // used for role-restricted routes and analytics
   onUnhandled?: (query: string) => void   // hand off to an existing chatbot
+  mode?: 'guided' | 'auto'                // 'guided' (default): the user clicks each step. 'auto': Spotter clicks for them
+  onFlowEvent?: (event: FlowEvent) => void // flow_started | flow_completed | flow_step_failed | flow_abandoned
 }
 ```
 
