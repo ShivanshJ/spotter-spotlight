@@ -46,3 +46,43 @@ describe('nextjsAnalyzer', () => {
     expect(unique.size).toBe(routes.length)
   })
 })
+
+describe('Next.js route paths', () => {
+  it('maps app router folders to URL paths', async () => {
+    const { appRoutePath } = await import('./nextjs')
+    const app = '/r/app'
+    expect(appRoutePath(app, '/r/app/page.tsx')).toBe('/')
+    expect(appRoutePath(app, '/r/app/(marketing)/pricing/page.tsx')).toBe('/pricing')
+    expect(appRoutePath(app, '/r/app/invoices/[id]/page.tsx')).toBe('/invoices/:id')
+    expect(appRoutePath(app, '/r/app/docs/[[...slug]]/page.tsx')).toBe('/docs')
+    expect(appRoutePath(app, '/r/app/docs/[...slug]/page.tsx')).toBeNull()
+    expect(appRoutePath(app, '/r/app/feed/(.)photo/page.tsx')).toBeNull()
+    expect(appRoutePath(app, '/r/app/_components/page.tsx')).toBeNull()
+    expect(appRoutePath(app, '/r/app/dashboard/@stats/page.tsx')).toBe('/dashboard')
+    expect(appRoutePath(app, '/r/app/settings/layout.tsx')).toBeNull()
+  })
+
+  it('maps pages router files to URL paths', async () => {
+    const { pagesRoutePath } = await import('./nextjs')
+    const pages = '/r/pages'
+    expect(pagesRoutePath(pages, '/r/pages/index.tsx')).toBe('/')
+    expect(pagesRoutePath(pages, '/r/pages/blog/index.tsx')).toBe('/blog')
+    expect(pagesRoutePath(pages, '/r/pages/blog/[slug].tsx')).toBe('/blog/:slug')
+    expect(pagesRoutePath(pages, '/r/pages/_app.tsx')).toBeNull()
+    expect(pagesRoutePath(pages, '/r/pages/404.tsx')).toBeNull()
+    expect(pagesRoutePath(pages, '/r/pages/api/users.ts')).toBeNull()
+  })
+
+  it('reads app and pages from src/', async () => {
+    const fsp = await import('fs/promises')
+    const os = await import('os')
+    const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'spotter-next-'))
+    await fsp.mkdir(path.join(dir, 'src/app/settings'), { recursive: true })
+    await fsp.writeFile(path.join(dir, 'package.json'), JSON.stringify({ dependencies: { next: '15' } }))
+    await fsp.writeFile(path.join(dir, 'src/app/settings/page.tsx'), 'export default function P() { return null }')
+    expect(nextjsAnalyzer.detect(dir)).toBe(true)
+    const routes = await nextjsAnalyzer.analyze(dir)
+    expect(routes.map(r => r.path)).toEqual(['/settings'])
+    await fsp.rm(dir, { recursive: true, force: true })
+  })
+})

@@ -53,6 +53,12 @@ describe('routeQuery', () => {
     expect(result.type).toBe('general')
   })
 
+  it('reports why the LLM call failed', async () => {
+    const client = { chat: { completions: { create: vi.fn().mockRejectedValue(new Error('401 Incorrect API key')) } } }
+    const result = await routeQuery(client as any, 'some query', 'Routes:\n  (none)')
+    expect(result).toEqual({ type: 'general', error: '401 Incorrect API key' })
+  })
+
   it('passes actionName through on a navigate result', async () => {
     const client = makeMockClient({ type: 'navigate', routePath: '/settings/billing', actionName: 'change_plan' })
     const result = await routeQuery(client as any, 'change my plan', 'Routes:\n  (none)')

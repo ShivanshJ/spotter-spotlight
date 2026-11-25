@@ -8,11 +8,19 @@ function existsSync(filePath: string): boolean {
   try { fs.accessSync(filePath); return true } catch { return false }
 }
 
+function hasNextDep(rootDir: string): boolean {
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(rootDir, 'package.json'), 'utf-8'))
+    return 'next' in { ...pkg.dependencies, ...pkg.devDependencies }
+  } catch { return false }
+}
+
 async function walkDir(dir: string): Promise<string[]> {
   try {
     const entries = await fsp.readdir(dir, { withFileTypes: true })
     const files: string[] = []
     for (const entry of entries) {
+      if (entry.name === 'node_modules' || entry.name.startsWith('.')) continue
       const full = path.join(dir, entry.name)
       if (entry.isDirectory()) files.push(...await walkDir(full))
       else files.push(full)
@@ -21,19 +29,45 @@ async function walkDir(dir: string): Promise<string[]> {
   } catch { return [] }
 }
 
-const PAGE_PATTERN = /\/page\.(tsx?|jsx?)$/
-const SPECIAL_PATTERN = /(layout|loading|error|not-found|template|default|route)\.(tsx?|jsx?)$/
-const PAGES_EXCLUDE = /(^|\/)(_(app|document|error)\.(tsx?|jsx?)|api\/)/
+const PAGE_EXT = /\.(tsx?|jsx?|mdx)$/
+const NOT_A_PAGE = /\.(test|spec|stories|d)\.[^.]+$/
+const PAGES_SPECIAL = new Set(['_app', '_document', '_error', '404', '500'])
 
-function appRoutePath(rootDir: string, filePath: string): string {
-  const rel = path.relative(path.join(rootDir, 'app'), filePath)
-  const withoutPage = rel.replace(/\/page\.(tsx?|jsx?)$/, '').replace(/^page\.(tsx?|jsx?)$/, '')
-  return withoutPage ? `/${withoutPage}` : '/'
+// Converts one directory or file segment to a URL segment.
+// Returns '' for segments that don't appear in the URL, and null when the page can't be addressed.
+function urlSegment(segment: string): string | null {
+  if (/^\(\.+\)/.test(segment)) return null
+  if (/^\(.*\)$/.test(segment)) return ''
+  if (segment.startsWith('@')) return ''
+  if (segment.startsWith('_')) return null
+  if (/^\[\[\.\.\..+\]\]$/.test(segment)) return ''
+  if (/^\[\.\.\..+\]$/.test(segment)) return null
+  const dynamic = segment.match(/^\[(.+)\]$/)
+  if (dynamic) return `:${dynamic[1]}`
+  return segment
 }
 
-function pagesRoutePath(rootDir: string, filePath: string): string {
-  const rel = path.relative(path.join(rootDir, 'pages'), filePath)
-  return '/' + rel.replace(/\.(tsx?|jsx?)$/, '')
+function toRoutePath(segments: string[]): string | null {
+  const parts: string[] = []
+  for (const segment of segments) {
+    const part = urlSegment(segment)
+    if (part === null) return null
+    if (part) parts.push(part)
+  }
+  return '/' + parts.join('/')
+}
+
+export function appRoutePath(appDir: string, filePath: string): string | null {
+  const rel = path.relative(appDir, filePath).split(path.sep)
+  if (!/^page\.(tsx?|jsx?|mdx)$/.test(rel[rel.length - 1])) return null
+  return toRoutePath(rel.slice(0, -1))
+}
+
+export function pagesRoutePath(pagesDir: string, filePath: string): string | null {
+  const rel = path.relative(pagesDir, filePath).replace(PAGE_EXT, '').split(path.sep)
+  if (rel[0] === 'api' || PAGES_SPECIAL.has(rel[rel.length - 1])) return null
+  if (rel[rel.length - 1] === 'index') rel.pop()
+  return toRoutePath(rel)
 }
 
 async function routeFromFile(filePath: string, routePath: string): Promise<DiscoveredRoute> {
@@ -41,43 +75,40 @@ async function routeFromFile(filePath: string, routePath: string): Promise<Disco
   return {
     path: routePath,
     componentFile: filePath,
+    sourceFile: filePath,
     pageTitle: extractPageTitle(content),
     selectors: extractSelectors(content),
     apiCalls: extractApiCalls(content),
   }
 }
 
-async function appRoutes(rootDir: string): Promise<DiscoveredRoute[]> {
-  const files = await walkDir(path.join(rootDir, 'app'))
-  const pageFiles = files.filter(f => PAGE_PATTERN.test(f) && !SPECIAL_PATTERN.test(f))
-  return Promise.all(pageFiles.map(f => routeFromFile(f, appRoutePath(rootDir, f))))
+async function routesIn(dir: string, toPath: (dir: string, file: string) => string | null): Promise<DiscoveredRoute[]> {
+  const files = (await walkDir(dir)).filter(f => PAGE_EXT.test(f) && !NOT_A_PAGE.test(f))
+  const found = files
+    .map(file => ({ file, routePath: toPath(dir, file) }))
+    .filter((r): r is { file: string; routePath: string } => r.routePath !== null)
+  return Promise.all(found.map(r => routeFromFile(r.file, r.routePath)))
 }
 
-async function pagesRoutes(rootDir: string): Promise<DiscoveredRoute[]> {
-  const pagesDir = path.join(rootDir, 'pages')
-  const files = await walkDir(pagesDir)
-  const pageFiles = files.filter(f => {
-    const rel = path.relative(pagesDir, f)
-    return !PAGES_EXCLUDE.test(rel) && /\.(tsx?|jsx?)$/.test(f)
-  })
-  return Promise.all(pageFiles.map(f => routeFromFile(f, pagesRoutePath(rootDir, f))))
+function sourceDirs(rootDir: string, name: string): string[] {
+  return [path.join(rootDir, name), path.join(rootDir, 'src', name)].filter(existsSync)
 }
 
 export const nextjsAnalyzer: FrameworkAnalyzer = {
   name: 'Next.js',
 
   detect(rootDir) {
-    return (
-      existsSync(path.join(rootDir, 'next.config.js')) ||
-      existsSync(path.join(rootDir, 'next.config.ts')) ||
-      existsSync(path.join(rootDir, 'next.config.mjs'))
-    )
+    return ['next.config.js', 'next.config.ts', 'next.config.mjs', 'next.config.cjs']
+      .some(f => existsSync(path.join(rootDir, f))) || hasNextDep(rootDir)
   },
 
   async analyze(rootDir) {
-    const [app, pages] = await Promise.all([appRoutes(rootDir), pagesRoutes(rootDir)])
+    const groups = await Promise.all([
+      ...sourceDirs(rootDir, 'app').map(dir => routesIn(dir, appRoutePath)),
+      ...sourceDirs(rootDir, 'pages').map(dir => routesIn(dir, pagesRoutePath)),
+    ])
     const seen = new Set<string>()
-    return [...app, ...pages].filter(r => {
+    return groups.flat().filter(r => {
       if (seen.has(r.path)) return false
       seen.add(r.path)
       return true

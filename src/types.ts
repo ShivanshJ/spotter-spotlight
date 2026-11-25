@@ -14,6 +14,8 @@ export const RouteSchema = z.object({
   actions: z.array(PageActionSchema).optional(),
   selectors: z.record(z.string()).default({}),
   role: z.string().optional(),
+  navigable: z.boolean().optional(),
+  note: z.string().optional(),
 })
 
 export const ActionSchema = z.object({

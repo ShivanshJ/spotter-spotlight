@@ -55,7 +55,8 @@ export function createSpotterProxy(
         response = { type: 'unhandled', query }
       }
 
-      analytics({ type: 'query', query, responseType: response.type, url, role })
+      const error = result.type === 'general' ? result.error : undefined
+      analytics({ type: 'query', query, responseType: response.type, url, role, ...(error ? { error } : {}) })
       res.json(response)
     } catch (err) {
       res.json({ type: 'error', message: err instanceof Error ? err.message : 'Unknown error' })

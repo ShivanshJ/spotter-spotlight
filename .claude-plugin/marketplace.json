@@ -1,0 +1,13 @@
+{
+  "name": "spotter",
+  "owner": {
+    "name": "Spotter"
+  },
+  "plugins": [
+    {
+      "name": "spotter",
+      "source": "./plugins/spotter",
+      "description": "Generate spotter.config.json with your coding agent: deterministic route and control extraction, plus agent-written descriptions and page actions."
+    }
+  ]
+}

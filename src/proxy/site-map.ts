@@ -14,8 +14,12 @@ function routeLines(route: Route): string[] {
   return [`  - ${route.path}: "${route.description}"${reachable}${role}`, ...pageActions]
 }
 
+function isNavigable(route: Route): boolean {
+  return route.navigable !== false
+}
+
 export function summarizeConfig(config: SpotterConfig): string {
-  const routes = config.routes.flatMap(routeLines).join('\n')
+  const routes = config.routes.filter(isNavigable).flatMap(routeLines).join('\n')
 
   const actions = config.actions
     .map((a) => `  - "${a.intent}" → ${a.endpoint}${a.role ? ` [role: ${a.role}]` : ''}`)
@@ -25,7 +29,7 @@ export function summarizeConfig(config: SpotterConfig): string {
 }
 
 export function findRouteByPath(config: SpotterConfig, path: string): Route | undefined {
-  return config.routes.find((r) => r.path === path)
+  return config.routes.find((r) => r.path === path && isNavigable(r))
 }
 
 export function findActionByIntent(config: SpotterConfig, intent: string): Action | undefined {

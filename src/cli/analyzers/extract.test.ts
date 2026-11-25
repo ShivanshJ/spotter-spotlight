@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { extractSelectors, extractApiCalls, extractPageTitle } from './extract'
+import { extractControls, extractSelectors, extractApiCalls, extractPageTitle } from './extract'
 
 describe('extractSelectors', () => {
   it('extracts data-testid selectors', () => {
@@ -61,5 +61,39 @@ describe('extractPageTitle', () => {
 
   it('returns undefined when no title found', () => {
     expect(extractPageTitle('<div>no title</div>')).toBeUndefined()
+  })
+})
+
+describe('extractControls', () => {
+  const page = `
+    const [a, setA] = useState<string>('')
+    return (<div>
+      <Button variant="primary" onClick={() => setOpen(x => !x)}>Upgrade plan</Button>
+      <button aria-label={"Close"} onClick={() => a > b}>X</button>
+      <IconButton><TrashIcon /> Delete rule</IconButton>
+      <Button>{t('save')}</Button>
+      <Button>Save {count} items</Button>
+      <button data-testid="dark-mode-toggle">Dark Mode</button>
+      <DropdownMenuItem onSelect={() => go()}>Rename</DropdownMenuItem>
+      <Tab value="a">Members</Tab>
+      <p>Just text</p>
+    </div>)`
+
+  it('targets buttons, menu items and tabs by visible text when they have no test id', () => {
+    const selectors = Object.fromEntries(extractControls(page).map(c => [c.key, c.selector]))
+    expect(selectors).toEqual({
+      upgradePlanButton: 'role=button[name="Upgrade plan"]',
+      close: '[aria-label="Close"]',
+      deleteRuleButton: 'role=button[name="Delete rule"]',
+      darkModeToggle: '[data-testid="dark-mode-toggle"]',
+      renameMenuitem: 'role=menuitem[name="Rename"]',
+      membersTab: 'role=tab[name="Members"]',
+    })
+  })
+
+  it('labels each control with what the user sees', () => {
+    const labels = extractControls(page).map(c => c.label)
+    expect(labels).toContain('Upgrade plan')
+    expect(labels).toContain('Close')
   })
 })

@@ -1,4 +1,5 @@
 import type { NavigateStep } from '../types'
+import { locate } from './locate'
 
 export class NavigatorController {
   private overlay: HTMLElement | null = null
@@ -13,7 +14,7 @@ export class NavigatorController {
 
   highlightStep(step: NavigateStep): void {
     this.clear()
-    const target = document.querySelector<HTMLElement>(step.selector)
+    const target = locate(step.selector)
     if (!target) return
 
     this.currentTarget = target

@@ -1,31 +1,16 @@
+import { isValidSelector, locate } from './locate'
+
 export interface WaitOptions {
   timeoutMs?: number
   root?: Document | Element
-}
-
-function find(root: Document | Element, selector: string): HTMLElement | null {
-  try {
-    return root.querySelector<HTMLElement>(selector)
-  } catch {
-    return null
-  }
-}
-
-function isValidSelector(root: Document | Element, selector: string): boolean {
-  try {
-    root.querySelector(selector)
-    return true
-  } catch {
-    return false
-  }
 }
 
 export function waitForElement(
   selector: string,
   { timeoutMs = 3000, root = document }: WaitOptions = {}
 ): Promise<HTMLElement | null> {
-  const existing = find(root, selector)
-  if (existing || !isValidSelector(root, selector)) return Promise.resolve(existing)
+  const existing = locate(selector, root)
+  if (existing || !isValidSelector(selector, root)) return Promise.resolve(existing)
 
   return new Promise((resolve) => {
     const finish = (value: HTMLElement | null) => {
@@ -34,7 +19,7 @@ export function waitForElement(
       resolve(value)
     }
     const observer = new MutationObserver(() => {
-      const found = find(root, selector)
+      const found = locate(selector, root)
       if (found) finish(found)
     })
     const timer = setTimeout(() => finish(null), timeoutMs)

@@ -1,6 +1,8 @@
-# Spotter Application Graph Format (v1.1)
+# Spotter Application Graph Format (v1.2)
 
-`spotter.config.json` is the application graph: what pages exist, how they connect, and what a user can do on them. It is produced by `spotter analyze`, edited by humans, and consumed by every Spotter SDK.
+`spotter.config.json` is the application graph: what pages exist, how they connect, and what a user can do on them. It is produced by `spotter-sdk analyze`, edited by humans, and consumed by every Spotter SDK.
+
+`analyze` keeps edits on re-runs. A route whose `description` is still the generated placeholder is treated as unreviewed and refreshed. Once it has a real description, its `title`, `navigable`, `note`, `reachableFrom` and `actions` are kept. `"navigable": true` is always kept. `selectors` are rewritten from the latest scan.
 
 ```json
 {
@@ -33,6 +35,8 @@
 | `actions` | no | Page actions: things a user can do on this page |
 | `selectors` | no | Named CSS selectors discovered by `spotter analyze`. Informational: use them as a reference when writing page actions. They are not clicked during navigation |
 | `role` | no | Restrict to users with this role |
+| `navigable` | no | `false` hides the route: it is left out of the site map the LLM sees and can't be navigated to. Used for paywalls, loading screens, API and resource routes, and dynamic routes. Default `true` |
+| `note` | no | Why a route is hidden. Informational |
 
 ## Page action
 
@@ -40,7 +44,11 @@
 |---|---|
 | `name` | Stable snake_case identifier, e.g. `change_plan` |
 | `description` | Plain-language description for LLM matching |
-| `selector` | CSS selector of the element to interact with |
+| `selector` | Element to interact with: a CSS selector, or `role=<role>[name="<accessible name>"]` |
+
+### Selectors
+
+A selector is either CSS (`[data-testid="change-plan"]`, `#save`) or a role selector: `role=button[name="Change plan"]`. A role selector matches elements with that ARIA role, implicit (`<button>` is a button) or explicit (`role="button"`), whose accessible name (`aria-label`, `aria-labelledby`, else text content) equals the name, ignoring case and extra whitespace. If no name matches exactly, an element whose name starts with it, then one that contains it, is used. Supported roles: `button`, `link`, `menuitem`, `tab`, `checkbox`, `switch`, and any other explicit `role` attribute.
 
 ## Top-level `actions`
 
@@ -61,4 +69,4 @@ The `/conformance` directory holds fixtures every SDK implementation must pass: 
 
 ## Compatibility
 
-v1.1 is additive. Configs without `title`, `reachableFrom`, or `actions` remain valid and behave as before.
+v1.1 and v1.2 are additive. Configs without `title`, `reachableFrom`, `actions` or `navigable` remain valid and behave as before. v1.2 added `navigable`, `note` and role selectors.

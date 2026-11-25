@@ -1,0 +1,6 @@
+{
+  "name": "spotter",
+  "version": "0.0.2",
+  "description": "Map your app's pages for the Spotter SDK: runs the deterministic spotter-sdk analyze CLI, then your coding agent hides non-pages and writes descriptions and page actions. No API key needed.",
+  "license": "ISC"
+}

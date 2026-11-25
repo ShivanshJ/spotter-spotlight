@@ -19,11 +19,21 @@ export default defineConfig([
     platform: 'browser',
     entry: ['src/index.ts'],
     dts: true,
-    format: ['esm', 'iife'] as Format[],
-    globalName: 'Spotter',
+    format: ['esm'] as Format[],
     injectStyle: true,
     outDir: 'dist',
     clean: true,
+  },
+  {
+    ...sharedConfig,
+    platform: 'browser',
+    entry: ['src/index.ts'],
+    format: ['iife'] as Format[],
+    globalName: 'Spotter',
+    // The bundle's exports object is { Spotter }; unwrap it so a script tag can call Spotter.init().
+    footer: { js: 'Spotter = Spotter.Spotter;' },
+    injectStyle: true,
+    outDir: 'dist',
   },
   {
     ...sharedConfig,

@@ -1,46 +1,46 @@
-# MVP roadmap: from working SDK to design partners
+# Roadmap
 
-Goal: a B2B team can add Spotter in an afternoon, their users can ask for a page or an action and get taken there, and the team can see what failed and fix it.
+**Positioning:** add an AI agent to your SaaS in 5 minutes. Spotter reads your code to build an open application graph (`spotter.config.json`). An in-app agent uses it to take users to the right page and the right control.
 
-## Where we are
+**Business split:**
 
-- Done: Node and Python proxies, widget, `analyze` CLI (Next.js, React Router, Vue Router), graph format v1.1, shared conformance fixtures, LLM provider flexibility, analytics hook, CI, lint, type declarations.
-- Gap that blocks a demo: the widget highlights only the first step of a multi-step flow and never advances. `parent → page → action` (the main v1.1 feature) does not work end to end.
-- Gap that blocks selling: no way to tell if a navigation succeeded, no evaluation of routing quality, and "do things for the user" is limited to highlighting.
+- **Open source core:** the `analyze` CLI, the graph format, the widget, navigation, page actions, the Node and Python endpoints, and bring-your-own model.
+- **Spotter Cloud (paid, later):** managed inference and action execution, analytics and improvement loops, enterprise controls. It is billed on tasks or actions, not seats.
 
-## P0: must exist before the first design-partner demo
+**Adoption loop:** `npx spotter-sdk analyze` → `npx spotter-sdk dev` (try it on your own app, no code changes) → add the endpoint and widget → (later) deploy to Spotter Cloud.
 
-1. **Flow runner (widget).** Executes steps in order. Waits for each target to appear, skips steps already satisfied, survives full page loads, falls back to direct navigation when a link is missing, and reports `completed` / `step_failed` / `abandoned`. Guided mode is the default (the user clicks); `mode: 'auto'` is opt-in and the runner clicks for the user.
-2. **Routing eval harness.** A golden set of `(query → expected route/action)` per fixture app, run against a recorded LLM in CI (deterministic) and against a live model on demand (`npm run eval`). Output: accuracy, unhandled rate, a confusion list. This is the number we quote to design partners.
-3. **Navigation precedence fix.** Analyzer routes carry discovered `selectors`, which win over `reachableFrom`. Make the parent link come first, then the route link, then selectors.
-4. **Hardening.** Query length cap, LLM timeout and retries exposed in `LLMConfig`, `authorize` hook on the proxy (reject before spending tokens), CORS and rate-limit guidance.
+## Done
 
-## P1: what makes design partners keep using it
+- Endpoints (Node, Python/FastAPI), widget, flow runner (multi-step, guided and auto modes, survives page loads), analytics hook, shared conformance fixtures, CI.
+- `analyze`:
+  - deterministic multi-file route extraction for React Router (data, declarative, framework mode), Vue Router and Next.js (`app/`, `pages/`, `src/`)
+  - controls from each page and the components it imports, by test id, `aria-label` or visible text
+  - small-model descriptions, `navigable` classification and generated page actions using the developer's own key (read from `.env`)
+  - dry run and `--json` for agents
+- Graph format v1.2: `navigable`, `note`, role selectors (`role=button[name="..."]`).
+- `spotter-sdk dev`: reverse proxy in front of the dev server that injects the widget, passes HMR through, and serves the endpoint with the developer's key.
+- Claude Code plugin (`spotter-analyze` skill): the same pipeline with the coding agent doing the judgment calls, no key needed.
 
-5. **Trace-grade events.** Add `requestId`, `latencyMs`, `model`, `matchedRoute`, `actionName`, `tokens` and an `error.kind` to the analytics event. Add the flow outcome events from the widget (endpoint: `POST <proxyUrl>/events`). Ship a built-in NDJSON file sink so partners can send us a log.
-6. **`spotter report`.** Reads the NDJSON log, groups `unhandled` queries, shows success rate per route, and flags routes that are navigated to but abandoned.
-7. **`spotter improve`.** Proposes edits to `spotter.config.json` (better descriptions, new page actions) from the log. It produces a diff for human review and never edits silently.
-8. **Provider port.** A `RoutingModel` interface so routing is not welded to the OpenAI SDK (OpenAI-compatible stays the default adapter).
-9. **Format v1.2.** `confirm: true` on page actions (destructive actions ask before running) and `risk` hints; API actions executed by the proxy with the user's session token.
+## Next: dogfood on a real app
 
-## P2: distribution
+The founder tests the full loop on their own app (`analyze` → `dev` → ask questions) and fixes what breaks. Watch for:
 
-10. Example apps (Next.js and FastAPI) in `examples/`, used as eval fixtures and as the demo.
-11. More analyzers: SvelteKit, Remix, Angular, Nuxt. More backend adapters: Django, Flask, Go, Java.
-12. Publish `spotter-sdk` to npm and PyPI from CI on tag. Add CHANGELOG and semver policy.
+- routes the parser misses, or the wrong mount prefix
+- pages hidden or shown wrongly
+- controls that aren't found (computed labels, custom components) or selectors that don't resolve
+- descriptions that route queries to the wrong page
 
-## Design-partner checklist (non-code)
+## Then: prove it works on apps we didn't write
 
-- 60-second demo video on an example app.
-- One-page integration guide (the README quick start) tested by someone who has not seen the repo.
-- A weekly "unhandled queries" review with the partner, using `spotter report`.
-- Success metrics agreed up front: query success rate, flow completion rate, share of queries that were `unhandled`.
+1. **Eval harness.** Run `analyze` on public apps (Cal.com and others). Hand-label a golden set of `(query → page, action)`. Measure route accuracy, action accuracy, unhandled rate, and selector resolution rate in a real browser. A recorded-LLM mode runs in CI, a live mode on demand. Publish the numbers. That is the main risk to the thesis: whether analyze → graph → agent can operate an arbitrary SaaS.
+2. **Dynamic routes.** Fill `:id` from the current page, recent records or a search action, so detail pages stop being hidden.
+3. **Hardening.** Query length cap, LLM timeout and retries in `LLMConfig`, an `authorize` hook on the endpoint, rate-limit guidance.
+4. **Publish.** Settle the npm name, publish `spotter-sdk` to npm and PyPI from CI on tag, then add a CHANGELOG and semver policy.
 
-## Observability as a separate product (sketch)
+## Later
 
-Every Spotter request is already a structured trace: query, retrieved map, routing decision, steps, and (once the flow runner reports) the user-visible outcome. That is the input a self-improving loop needs:
-
-- **Collect:** events as NDJSON or OpenTelemetry spans; LLM spans in OpenRouter, Langfuse or Phoenix.
-- **Label:** success is deterministic (flow completed vs abandoned vs retried with a rephrased query), so labels come free without human annotation.
-- **Improve:** cluster `unhandled` and abandoned queries, propose description or action edits, validate them against the golden set before opening a PR against `spotter.config.json`.
-- **Positioning:** "CI for your in-app agent". It works for any tool-using agent, not only Spotter, which is why it can stand alone.
+- `spotter setup`: a skill or command that adds the production endpoint and widget to the user's codebase.
+- Trace-grade events (`requestId`, latency, matched route, flow outcome), `spotter report` (unhandled queries, abandoned flows), `spotter improve` (proposed config diffs, never silent edits).
+- Executed actions: top-level API actions run by the endpoint with the user's session, and `confirm` on destructive page actions.
+- More analyzers (SvelteKit, Angular, Nuxt) and backends (Django, Flask, Go).
+- Spotter Cloud.

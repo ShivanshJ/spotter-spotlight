@@ -38,6 +38,13 @@
       "selectors": {
         "themeToggle": "[data-testid=\"theme-toggle\"]"
       }
+    },
+    {
+      "path": "/paywall",
+      "description": "Upgrade prompt shown when a feature needs a paid plan",
+      "navigable": false,
+      "note": "Users are sent here by the app; it is not a page they ask for",
+      "selectors": {}
     }
   ],
   "actions": [

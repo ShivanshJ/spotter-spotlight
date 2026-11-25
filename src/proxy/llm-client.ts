@@ -3,7 +3,7 @@ import OpenAI from 'openai'
 export type RouteResult =
   | { type: 'navigate'; routePath: string; actionName?: string }
   | { type: 'action'; actionIntent: string }
-  | { type: 'general' }
+  | { type: 'general'; error?: string }
 
 export type LLMConfig = {
   apiKey: string
@@ -58,7 +58,7 @@ export async function routeQuery(
     const content = response.choices[0].message.content
     if (!content) return { type: 'general' }
     return JSON.parse(content) as RouteResult
-  } catch {
-    return { type: 'general' }
+  } catch (err) {
+    return { type: 'general', error: err instanceof Error ? err.message : String(err) }
   }
 }

@@ -22,6 +22,8 @@ class Route(_Model):
     actions: list[PageAction] | None = None
     selectors: dict[str, str] = Field(default_factory=dict)
     role: str | None = None
+    navigable: bool | None = None
+    note: str | None = None
 
 
 class Action(_Model):

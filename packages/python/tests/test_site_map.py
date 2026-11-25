@@ -45,3 +45,8 @@ def test_find_action_by_intent(conformance_config):
 def test_load_config_reads_a_file(conformance_config):
     loaded = load_config(CONFORMANCE_DIR / "config.json")
     assert loaded == conformance_config
+
+
+def test_non_navigable_routes_are_hidden(conformance_config):
+    assert "/paywall" not in summarize_config(conformance_config)
+    assert find_route_by_path(conformance_config, "/paywall") is None

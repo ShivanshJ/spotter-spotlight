@@ -77,3 +77,11 @@ describe('summarizeConfig conformance', () => {
     expect(summary).toContain('"Users" [reachable from: /admin] [role: admin]')
   })
 })
+
+describe('non-navigable routes', () => {
+  it('are left out of the summary and cannot be navigated to', () => {
+    const conformance = loadConformanceConfig()
+    expect(summarizeConfig(conformance)).not.toContain('/paywall')
+    expect(findRouteByPath(conformance, '/paywall')).toBeUndefined()
+  })
+})

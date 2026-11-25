@@ -20,14 +20,18 @@ def _action_line(action: Action) -> str:
     return f'  - "{action.intent}" → {action.endpoint}{role}'
 
 
+def _is_navigable(route: Route) -> bool:
+    return route.navigable is not False
+
+
 def summarize_config(config: SpotterConfig) -> str:
-    routes = "\n".join(line for route in config.routes for line in _route_lines(route))
+    routes = "\n".join(line for route in config.routes if _is_navigable(route) for line in _route_lines(route))
     actions = "\n".join(_action_line(action) for action in config.actions)
     return f"Routes:\n{routes or '  (none)'}\n\nActions:\n{actions or '  (none)'}"
 
 
 def find_route_by_path(config: SpotterConfig, path: str | None) -> Route | None:
-    return next((route for route in config.routes if route.path == path), None)
+    return next((route for route in config.routes if route.path == path and _is_navigable(route)), None)
 
 
 def find_action_by_intent(config: SpotterConfig, intent: str | None) -> Action | None:

@@ -1,12 +1,7 @@
 import fs from 'fs'
-import fsp from 'fs/promises'
 import path from 'path'
 import type { FrameworkAnalyzer } from './types'
-import { extractSelectors, extractApiCalls } from './extract'
-
-function existsSync(filePath: string): boolean {
-  try { fs.accessSync(filePath); return true } catch { return false }
-}
+import { extractRoutes, findSourceFiles, toDiscoveredRoutes } from './route-config'
 
 function hasVueRouterDep(rootDir: string): boolean {
   try {
@@ -16,25 +11,7 @@ function hasVueRouterDep(rootDir: string): boolean {
   } catch { return false }
 }
 
-function extractPaths(content: string): string[] {
-  const paths: string[] = []
-  for (const match of content.matchAll(/path:\s*["']([^"']+)["']/g)) paths.push(match[1])
-  return [...new Set(paths)].filter(p => p.startsWith('/'))
-}
-
-const ROUTER_CANDIDATES = [
-  'src/router/index.ts', 'src/router/index.js',
-  'src/router.ts', 'src/router.js',
-  'router/index.ts', 'router/index.js',
-]
-
-async function findRouterFile(rootDir: string): Promise<string | null> {
-  for (const candidate of ROUTER_CANDIDATES) {
-    const filePath = path.join(rootDir, candidate)
-    if (existsSync(filePath)) return filePath
-  }
-  return null
-}
+const ROUTER_MARKERS = /\bcreateRouter\s*\(/
 
 export const vueRouterAnalyzer: FrameworkAnalyzer = {
   name: 'Vue Router',
@@ -43,17 +20,10 @@ export const vueRouterAnalyzer: FrameworkAnalyzer = {
     return hasVueRouterDep(rootDir)
   },
 
-  async analyze(rootDir) {
-    const routerFile = await findRouterFile(rootDir)
-    if (!routerFile) return []
-
-    const content = await fsp.readFile(routerFile, 'utf-8')
-    return extractPaths(content).map(routePath => ({
-      path: routePath,
-      componentFile: routerFile,
-      pageTitle: undefined,
-      selectors: extractSelectors(content),
-      apiCalls: extractApiCalls(content),
-    }))
+  async analyze(rootDir, options) {
+    const specs = options?.routeFiles
+      ?? findSourceFiles(rootDir, content => ROUTER_MARKERS.test(content) && content.includes('vue-router'))
+        .map(file => ({ file }))
+    return toDiscoveredRoutes(extractRoutes(specs, rootDir))
   },
 }

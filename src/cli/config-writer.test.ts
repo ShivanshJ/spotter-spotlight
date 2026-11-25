@@ -135,3 +135,58 @@ describe('writeConfig', () => {
     expect(content.routes[0]).not.toHaveProperty('actions')
   })
 })
+
+describe('writeConfig: placeholders, hidden routes and generated actions', () => {
+  it('upgrades placeholder descriptions but keeps written ones', async () => {
+    const outputPath = path.join(tmpDir, 'spotter.config.json')
+    await writeConfig([
+      { path: '/billing', componentFile: 'b.tsx', selectors: {}, apiCalls: [], description: 'Billing page' },
+      { path: '/team', componentFile: 't.tsx', selectors: {}, apiCalls: [], description: 'Invite teammates' },
+    ], { outputPath })
+    await writeConfig([
+      { path: '/billing', componentFile: 'b.tsx', selectors: {}, apiCalls: [], description: 'Change your plan' },
+      { path: '/team', componentFile: 't.tsx', selectors: {}, apiCalls: [], description: 'Something new' },
+    ], { outputPath })
+    const content = JSON.parse(await fsp.readFile(outputPath, 'utf-8'))
+    expect(content.routes.map((r: { description: string }) => r.description)).toEqual(['Change your plan', 'Invite teammates'])
+  })
+
+  it('writes navigable: false with a note, and keeps the developer\'s choice on re-runs', async () => {
+    const outputPath = path.join(tmpDir, 'spotter.config.json')
+    const paywall = { path: '/paywall', componentFile: 'p.tsx', selectors: {}, apiCalls: [], description: 'Paywall' }
+    await writeConfig([{ ...paywall, navigable: false, note: 'Interstitial' }], { outputPath })
+    let content = JSON.parse(await fsp.readFile(outputPath, 'utf-8'))
+    expect(content.routes[0]).toMatchObject({ navigable: false, note: 'Interstitial' })
+
+    content.routes[0].navigable = true
+    await fsp.writeFile(outputPath, JSON.stringify(content))
+    await writeConfig([{ ...paywall, navigable: false, note: 'Interstitial' }], { outputPath })
+    content = JSON.parse(await fsp.readFile(outputPath, 'utf-8'))
+    expect(content.routes[0].navigable).toBe(true)
+    expect(content.routes[0]).not.toHaveProperty('note')
+  })
+
+  it('adds generated actions only where none exist yet', async () => {
+    const outputPath = path.join(tmpDir, 'spotter.config.json')
+    const generated = [{ name: 'change_plan', description: 'Change plan', selector: 'role=button[name="Change plan"]' }]
+    const billing = { path: '/billing', componentFile: 'b.tsx', selectors: {}, apiCalls: [], description: 'Billing' }
+    await writeConfig([{ ...billing, actions: generated }], { outputPath })
+    const content = JSON.parse(await fsp.readFile(outputPath, 'utf-8'))
+    expect(content.routes[0].actions).toEqual(generated)
+    content.routes[0].actions = [{ name: 'mine', description: 'Mine', selector: '#mine' }]
+    await fsp.writeFile(outputPath, JSON.stringify(content))
+    await writeConfig([{ ...billing, actions: generated }], { outputPath })
+    expect(JSON.parse(await fsp.readFile(outputPath, 'utf-8')).routes[0].actions[0].name).toBe('mine')
+  })
+})
+
+describe('writeConfig: refreshing unreviewed routes', () => {
+  it('lets a later model run overrule a guess from a no-key run', async () => {
+    const outputPath = path.join(tmpDir, 'spotter.config.json')
+    const base = { path: '/paywall', componentFile: 'p.tsx', selectors: {}, apiCalls: [] }
+    await writeConfig([{ ...base, description: 'Paywall page', navigable: false, note: 'guessed' }], { outputPath })
+    const config = await writeConfig([{ ...base, description: 'Upgrade to unlock exports', title: 'Upgrade' }], { outputPath })
+    expect(config.routes[0]).toMatchObject({ description: 'Upgrade to unlock exports', title: 'Upgrade' })
+    expect(config.routes[0].navigable).toBeUndefined()
+  })
+})
